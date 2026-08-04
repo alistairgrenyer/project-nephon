@@ -3,11 +3,14 @@ from __future__ import annotations
 from enum import Enum
 from uuid import UUID
 from pydantic import BaseModel, Field
-from nephon_contracts.enums import GovernanceDisposition
-from nephon_graph.core.belief import BeliefState, BeliefStatus
-from nephon_graph.core.claims import AuthorityLevel, Claim, Polarity
-from nephon_graph.core.contexts import Context
-from nephon_graph.core.propositions import PropositionAtom
+
+from nephon_contracts.contexts import Context
+from nephon_contracts.enums import AuthorityLevel, BeliefStatus, GovernanceDisposition, Polarity
+from nephon_contracts.propositions import PropositionAtom
+
+from nephon_graph.core.belief import BeliefState
+from nephon_graph.core.claims import Claim
+
 
 
 
