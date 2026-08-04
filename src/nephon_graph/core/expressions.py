@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
@@ -10,4 +10,5 @@ class Expression(BaseModel):
     text: str
     source_uri: str | None = None
     speaker_or_author: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

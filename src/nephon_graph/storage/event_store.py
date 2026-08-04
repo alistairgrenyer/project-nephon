@@ -31,6 +31,10 @@ class InMemoryEventStore:
     def get_atom(self, atom_id: UUID) -> PropositionAtom | None:
         return self._atoms.get(atom_id)
 
+    def list_atom_ids(self) -> list[UUID]:
+        return list(self._atoms.keys())
+
+
     def register_claim(self, claim: Claim) -> None:
         """Register a claim object so materialized indexes can dereference it by ID."""
         self._claims[claim.id] = claim

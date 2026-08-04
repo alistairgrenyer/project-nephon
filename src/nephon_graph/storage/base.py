@@ -30,6 +30,10 @@ class EventStore(Protocol):
     def get_atom(self, atom_id: UUID) -> PropositionAtom | None:
         ...
 
+    def list_atom_ids(self) -> list[UUID]:
+        ...
+
+
     def register_claim(self, claim: Claim) -> None:
         ...
 

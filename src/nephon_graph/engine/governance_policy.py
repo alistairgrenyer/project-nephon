@@ -3,17 +3,12 @@ from __future__ import annotations
 from enum import Enum
 from uuid import UUID
 from pydantic import BaseModel, Field
+from nephon_contracts.enums import GovernanceDisposition
 from nephon_graph.core.belief import BeliefState, BeliefStatus
 from nephon_graph.core.claims import AuthorityLevel, Claim, Polarity
 from nephon_graph.core.contexts import Context
 from nephon_graph.core.propositions import PropositionAtom
 
-
-class GovernanceDisposition(str, Enum):
-    PERMIT = "permit"
-    REFUSE = "refuse"
-    DEFER = "defer"
-    REQUIRE_EVIDENCE = "require_evidence"
 
 
 class DispositionRule(BaseModel):

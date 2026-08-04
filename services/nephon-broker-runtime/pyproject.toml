@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nephon-broker-runtime"
+version = "0.1.0"
+description = "Nephon Reusable Execution Broker Runtime (Policy Enforcement Point)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0.0",
+    "cryptography>=41.0.0",
+    "nephon-contracts>=0.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

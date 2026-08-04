@@ -61,7 +61,8 @@ class KernelRetrievalEngine:
     ) -> ContextRetrievalPayload:
         if proposition_ids is None:
             # Query all registered proposition atoms
-            proposition_ids = list(self.store._atoms.keys())
+            proposition_ids = self.store.list_atom_ids()
+
 
         results: list[RetrievedAtomResult] = []
         prompt_lines: list[str] = ["=== RETRIEVED NEPHON KERNEL CONTEXT ==="]
