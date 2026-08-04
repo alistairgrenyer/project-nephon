@@ -59,7 +59,7 @@ class InMemoryEventStore:
         # 1. Idempotency & Envelope Integrity Check
         if event.event_id in self._events_by_id:
             existing = self._events_by_id[event.event_id]
-            # Compare complete envelope
+            # Compare complete full envelope fields (ignoring sequence assigned by store)
             if (
                 existing.event_type == event.event_type
                 and existing.aggregate_id == event.aggregate_id
@@ -112,7 +112,7 @@ class InMemoryEventStore:
                 self._active_claim_ids.add(cid)
             except ValueError:
                 pass
-        elif event.event_type == "ClaimRetracted" or event.event_type == "ClaimSuperseded" or event.event_type == "ClaimExpired":
+        elif event.event_type in ("ClaimRetracted", "ClaimSuperseded", "ClaimExpired"):
             claim_id_str = event.payload.get("claim_id") or event.aggregate_id
             try:
                 cid = UUID(claim_id_str)

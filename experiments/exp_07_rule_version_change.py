@@ -16,7 +16,8 @@ from nephon_graph.storage.event_store import InMemoryEventStore
 def run_experiment_07():
     """
     Exp 07: Inference Rule version change/deactivation.
-    Verifies that claims derived from deactivated rules dynamically change support status.
+    Verifies that claims derived from deactivated rules dynamically yield CURRENTLY_UNSUPPORTED
+    (preserving historical/structural derivation while revoking active support).
     """
     store = InMemoryEventStore()
 
@@ -55,20 +56,20 @@ def run_experiment_07():
         asserted_by="InferenceEngine",
     )
 
-    initial_status = ProvenanceEvaluator.evaluate(derived_claim.provenance, store)
+    initial_status = ProvenanceEvaluator.evaluate(derived_claim.provenance, store, active_rules=set(inference_engine.rules.keys()))
 
     # Deactivate Rule v1.0.0
     del inference_engine.rules["RULE-HEALTH@1.0.0"]
 
-    rule_node = derived_claim.provenance
-    # Deactivated rule produces DERIVATION_BROKEN when evaluating rule node directly or if rule is unregistered
-    # Custom rule evaluation checks if rule exists in store/engine
-    rule_status = ProvenanceSupportStatus.VALID if "RULE-HEALTH@1.0.0" in inference_engine.rules else ProvenanceSupportStatus.DERIVATION_BROKEN
+    # Re-evaluate with updated active_rules set
+    rule_deactivated_status = ProvenanceEvaluator.evaluate(
+        derived_claim.provenance, store, active_rules=set(inference_engine.rules.keys())
+    )
 
     return {
         "initial_status": initial_status.value,
-        "rule_deactivated_status": rule_status.value,
-        "rule_deactivation_successful": rule_status == ProvenanceSupportStatus.DERIVATION_BROKEN,
+        "rule_deactivated_status": rule_deactivated_status.value,
+        "rule_deactivation_successful": rule_deactivated_status == ProvenanceSupportStatus.CURRENTLY_UNSUPPORTED,
     }
 
 

@@ -24,9 +24,7 @@ def run_baseline_harness():
     res7 = run_experiment_07()
 
     # Naive graph simulation metrics on 10 paraphrases:
-    # Naive graph creates 10 separate nodes and 10 separate edge relationships.
     naive_nodes = res1["expressions_count"]  # 10
-    naive_edges = res1["expressions_count"]  # 10
     kernel_atoms = res1["atom_count"]         # 1
     duplicate_reduction_pct = ((naive_nodes - kernel_atoms) / naive_nodes) * 100.0
 
@@ -36,7 +34,7 @@ def run_baseline_harness():
         "Invariant 3: Invalidation Completeness": res6["invalidation_successful"] is True,
         "Invariant 4: Surviving Derivation Recovery": res2["valid"] is True,
         "Invariant 5: Conflict Preservation": res4["is_conflicted"] is True,
-        "Invariant 6: Rule Deactivation Integrity": res7["rule_deactivation_successful"] is True,
+        "Invariant 6: Rule Deactivation Integrity (CURRENTLY_UNSUPPORTED)": res7["rule_deactivation_successful"] is True,
     }
 
     all_invariants_passed = all(invariants.values())
@@ -56,7 +54,7 @@ def run_baseline_harness():
 | **3. Invalidation Completeness** | {'PASSED' if invariants['Invariant 3: Invalidation Completeness'] else 'FAILED'} |
 | **4. Surviving Derivation Recovery** | {'PASSED' if invariants['Invariant 4: Surviving Derivation Recovery'] else 'FAILED'} |
 | **5. Conflict Preservation** | {'PASSED' if invariants['Invariant 5: Conflict Preservation'] else 'FAILED'} |
-| **6. Rule Deactivation Integrity** | {'PASSED' if invariants['Invariant 6: Rule Deactivation Integrity'] else 'FAILED'} |
+| **6. Rule Deactivation Integrity** | {'PASSED' if invariants['Invariant 6: Rule Deactivation Integrity (CURRENTLY_UNSUPPORTED)'] else 'FAILED'} |
 
 ## Experiment Breakdown
 - **Exp 01 (Repeated Paraphrases)**: {res1['expressions_count']} raw expressions -> {res1['atom_count']} canonical atom
