@@ -64,3 +64,27 @@ def test_event_store_aggregate_versioning():
     ev2 = KnowledgeEvent(aggregate_id="agg-1", aggregate_version=2, event_type="E2")
     store.append(ev2)
     assert store._aggregate_versions["agg-1"] == 2
+
+
+def test_event_store_fork_isolation():
+    store = InMemoryEventStore()
+    ev1 = KnowledgeEvent(aggregate_id="agg-1", aggregate_version=1, event_type="ClaimCreated", payload={"claim_id": "c1"})
+    store.append(ev1)
+    ev2 = KnowledgeEvent(aggregate_id="agg-1", aggregate_version=2, event_type="ClaimActivated", payload={"claim_id": "c1"})
+    store.append(ev2)
+
+    assert store.is_claim_active(uuid4()) is False
+    assert len(store.get_events()) == 2
+
+    # Fork store snapshot
+    forked = store.fork()
+    assert len(forked.get_events()) == 2
+
+    # Append event to fork
+    ev_fork = KnowledgeEvent(aggregate_id="agg-1", aggregate_version=3, event_type="ClaimRetracted", payload={"claim_id": "c1"})
+    forked.append(ev_fork)
+
+    # Original store remains untouched
+    assert len(store.get_events()) == 2
+    assert len(forked.get_events()) == 3
+

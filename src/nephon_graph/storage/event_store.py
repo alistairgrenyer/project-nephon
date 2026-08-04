@@ -125,3 +125,21 @@ class InMemoryEventStore:
         self._active_claim_ids.clear()
         for event in self._events:
             self._apply_event_to_materialized_index(event)
+
+    def fork(self) -> InMemoryEventStore:
+        """Create an independent snapshot by replaying events into a new store."""
+        forked = InMemoryEventStore()
+        for event in self._events:
+            forked._events.append(event)
+            forked._events_by_id[event.event_id] = event
+            forked._aggregate_versions[event.aggregate_id] = event.aggregate_version
+            forked._sequence_counter = max(forked._sequence_counter, event.sequence)
+        for atom_id, atom in self._atoms.items():
+            forked._atoms[atom_id] = atom
+        for claim_id, claim in self._claims.items():
+            forked._claims[claim_id] = claim
+        for atom_id, claim_ids in self._claims_by_atom.items():
+            forked._claims_by_atom[atom_id] = list(claim_ids)
+        forked._active_claim_ids = set(self._active_claim_ids)
+        return forked
+

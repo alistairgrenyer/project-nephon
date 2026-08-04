@@ -62,6 +62,25 @@ class InferenceEngine:
                 raise InferenceError(f"Premise claim '{cid}' provenance is not VALID.")
             premise_claims.append(claim)
 
+        # 1b. Validate premise predicates match rule signature
+        if rule.premise_predicates:
+            if len(premise_claim_ids) != len(rule.premise_predicates):
+                raise InferenceError(
+                    f"Rule '{rule.rule_id}' expects {len(rule.premise_predicates)} premises, "
+                    f"got {len(premise_claim_ids)}."
+                )
+            for idx, (cid, claim) in enumerate(zip(premise_claim_ids, premise_claims)):
+                expected_pred = rule.premise_predicates[idx].strip().lower()
+                atom = self.store.get_atom(claim.proposition_id)
+                if atom is None:
+                    raise InferenceError(f"Premise claim '{cid}' proposition atom does not exist.")
+                if atom.predicate.strip().lower() != expected_pred:
+                    raise InferenceError(
+                        f"Premise claim at index {idx} has predicate '{atom.predicate}', "
+                        f"rule '{rule.rule_id}' expects '{expected_pred}'."
+                    )
+
+
         # 2. Intersect premise contexts
         current_context = premise_claims[0].context
         for claim in premise_claims[1:]:

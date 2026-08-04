@@ -99,3 +99,41 @@ def test_inference_engine_context_intersection_failure():
             polarity=Polarity.POSITIVE,
             asserted_by="EngineTest",
         )
+
+
+def test_inference_engine_premise_predicate_mismatch_fails():
+    store = InMemoryEventStore()
+
+    p1_atom = PropositionAtom.create(predicate="expected_pred", arguments={"arg": uuid4()})
+    c_atom = PropositionAtom.create(predicate="conclusion", arguments={"arg": uuid4()})
+    store.register_atom(p1_atom)
+
+    claim1 = Claim(
+        proposition_id=p1_atom.id,
+        polarity=Polarity.POSITIVE,
+        context=Context.universal(),
+        provenance=SourceLeaf(kind=SourceKind.DOCUMENT, ref_id="doc-1"),
+        asserted_by="Steward",
+        trust_level=TrustLevel.STEWARD_AUTHORIZED,
+        authority_level=AuthorityLevel.STEWARD_AUTHORIZED,
+        epistemic_mode=EpistemicMode.OPERATIONAL_RULE,
+    )
+    store.register_claim(claim1)
+    store.append(KnowledgeEvent(aggregate_id=str(claim1.id), aggregate_version=1, event_type="ClaimCreated"))
+    store.append(KnowledgeEvent(aggregate_id=str(claim1.id), aggregate_version=2, event_type="ClaimActivated", payload={"claim_id": str(claim1.id)}))
+
+    # Rule expects "different_pred" as premise predicate
+    rule = InferenceRule(rule_id="R-MISMATCH", version="1.0.0", premise_predicates=["different_pred"], conclusion_predicate="conclusion")
+    engine = InferenceEngine(store)
+    engine.register_rule(rule)
+
+    with pytest.raises(InferenceError, match="expects 'different_pred'"):
+        engine.derive_claim(
+            rule_id="R-MISMATCH",
+            rule_version="1.0.0",
+            premise_claim_ids=[claim1.id],
+            conclusion_atom=c_atom,
+            polarity=Polarity.POSITIVE,
+            asserted_by="EngineTest",
+        )
+

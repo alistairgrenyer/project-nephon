@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from nephon_graph.core.belief import BeliefState, BeliefStatus
 from nephon_graph.core.claims import Claim
 from nephon_graph.core.contexts import Context
+from nephon_graph.core.provenance import RuleNode, SourceLeaf, ClaimLeaf
 from nephon_graph.engine.belief_evaluator import BeliefEvaluator
 from nephon_graph.engine.governance_policy import GovernanceDecision, GovernancePolicy
 from nephon_graph.storage.base import EventStore
@@ -34,6 +35,27 @@ class KernelRetrievalEngine:
         self.store = store
         self.governance_policy = governance_policy or GovernancePolicy()
 
+    def _format_provenance(self, claim: Claim, indent: str = "    ") -> list[str]:
+        lines: list[str] = []
+        prov = claim.provenance
+
+        if isinstance(prov, RuleNode):
+            lines.append(f"{indent}Rule Provenance: {prov.rule_id} (v{prov.rule_version})")
+            lines.append(f"{indent}Premises:")
+            for p_leaf in prov.premises:
+                p_claim = self.store.get_claim(p_leaf.claim_id)
+                if p_claim:
+                    atom = self.store.get_atom(p_claim.proposition_id)
+                    pred = atom.predicate if atom else "unknown"
+                    ref = p_claim.provenance.ref_id if isinstance(p_claim.provenance, SourceLeaf) else str(p_claim.id)
+                    lines.append(
+                        f"{indent}  - Premise Claim: {pred} (Polarity: {p_claim.polarity.value}, Mode: {p_claim.epistemic_mode.value}, Source: {ref})"
+                    )
+        elif isinstance(prov, SourceLeaf):
+            lines.append(f"{indent}Source Leaf: {prov.kind.value} ({prov.ref_id})")
+
+        return lines
+
     def retrieve_for_context(
         self, target_context: Context, proposition_ids: list[UUID] | None = None
     ) -> ContextRetrievalPayload:
@@ -54,7 +76,9 @@ class KernelRetrievalEngine:
                 continue
 
             all_active = belief.positive_claims + belief.negative_claims
-            gov_decision = self.governance_policy.evaluate(all_active, target_context)
+            gov_decision = self.governance_policy.evaluate(
+                all_active, target_context, belief_state=belief, predicate=atom.predicate
+            )
 
             results.append(
                 RetrievedAtomResult(
@@ -69,11 +93,13 @@ class KernelRetrievalEngine:
             # Build readable prompt summary
             prompt_lines.append(f"\n[Proposition Atom: {atom.predicate} (ID: {atom.id})]")
             prompt_lines.append(f"  Epistemic Status: {belief.status.value.upper()}")
+            prompt_lines.append(f"  Operational Disposition: {gov_decision.disposition.value.upper()}")
             if gov_decision.governing_claim:
                 gc = gov_decision.governing_claim
                 prompt_lines.append(
-                    f"  Governing Directive: {gc.polarity.value.upper()} (Authority: {gc.authority_level.value}, Asserted By: {gc.asserted_by})"
+                    f"  Governing Claim: {gc.polarity.value.upper()} (Authority: {gc.authority_level.value}, Mode: {gc.epistemic_mode.value})"
                 )
+                prompt_lines.extend(self._format_provenance(gc, indent="  "))
             prompt_lines.append(f"  Explanation: {belief.explanation}")
 
         prompt_text = "\n".join(prompt_lines)

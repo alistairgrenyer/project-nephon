@@ -44,3 +44,7 @@ class EventStore(Protocol):
 
     def rebuild_materialized_index(self) -> None:
         ...
+
+    def fork(self) -> EventStore:
+        ...
+
