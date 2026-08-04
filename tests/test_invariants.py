@@ -232,6 +232,57 @@ def test_invariant_any_branch_partial_loss_survives():
     assert status2 == ProvenanceSupportStatus.VALID
 
 
+def test_invariant_epistemic_mode_immutability():
+    """
+    Invariant: EpistemicMode is immutable after claim creation.
+    Reclassifying an observation as a constitutional judgement requires a new claim with distinct ID,
+    provenance, and assertion event. Mutating an existing claim object or in-place reclassification is invalid.
+    """
+    store = InMemoryEventStore()
+
+    atom = PropositionAtom.create(predicate="observed_event", arguments={"id": uuid4()})
+    store.register_atom(atom)
+
+    original_claim = Claim(
+        proposition_id=atom.id,
+        polarity=Polarity.POSITIVE,
+        context=Context.universal(),
+        provenance=SourceLeaf(kind=SourceKind.EXTERNAL, ref_id="telemetry_log_01"),
+        asserted_by="MonitoringAgent",
+        trust_level=TrustLevel.VERIFIED_SYSTEM,
+        authority_level=AuthorityLevel.VERIFIED_SYSTEM,
+        epistemic_mode=EpistemicMode.OBSERVATION,
+    )
+    store.register_claim(original_claim)
+    store.append(KnowledgeEvent(aggregate_id=str(original_claim.id), aggregate_version=1, event_type="ClaimCreated"))
+    store.append(KnowledgeEvent(aggregate_id=str(original_claim.id), aggregate_version=2, event_type="ClaimActivated", payload={"claim_id": str(original_claim.id)}))
+
+    # Attempting to mutate epistemic_mode in-place on stored object violates immutability invariant
+    stored_claim = store.get_claim(original_claim.id)
+    assert stored_claim is not None
+    assert stored_claim.epistemic_mode == EpistemicMode.OBSERVATION
+
+    # Reclassification pathway requires creating a NEW claim with explicit provenance linking back
+    reclassified_claim = Claim(
+        proposition_id=atom.id,
+        polarity=Polarity.POSITIVE,
+        context=Context.universal(),
+        provenance=ClaimLeaf(claim_id=original_claim.id),  # Linked to original claim
+        asserted_by="Steward",
+        trust_level=TrustLevel.CONSTITUTIONAL,
+        authority_level=AuthorityLevel.CONSTITUTIONAL,
+        epistemic_mode=EpistemicMode.CONSTITUTIONAL_JUDGEMENT,  # New mode
+    )
+    store.register_claim(reclassified_claim)
+    store.append(KnowledgeEvent(aggregate_id=str(reclassified_claim.id), aggregate_version=1, event_type="ClaimCreated"))
+    store.append(KnowledgeEvent(aggregate_id=str(reclassified_claim.id), aggregate_version=2, event_type="ClaimActivated", payload={"claim_id": str(reclassified_claim.id)}))
+
+    # Both claims remain distinct with their own epistemic modes
+    assert store.get_claim(original_claim.id).epistemic_mode == EpistemicMode.OBSERVATION
+    assert store.get_claim(reclassified_claim.id).epistemic_mode == EpistemicMode.CONSTITUTIONAL_JUDGEMENT
+    assert reclassified_claim.id != original_claim.id
+
+
 def test_invariant_event_replay_identical_materialized_projection():
     """
     Invariant: Replaying complete event stream rebuilds byte-equivalent/identical materialized state.
