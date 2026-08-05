@@ -1,0 +1,9 @@
+{
+  "extraPaths": [
+    "src",
+    "packages/nephon-contracts/src",
+    "packages/nephon-sdk/src",
+    "services/nephon-gateway/src",
+    "services/nephon-broker-runtime/src"
+  ]
+}
